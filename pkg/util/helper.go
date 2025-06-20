@@ -8,6 +8,8 @@ import (
 )
 
 // Set stores the given value for the specified key in the store.
+// args[0]: key, args[1]: value
+// Returns the value that was set, or an error message if arguments are invalid.
 func Set(store *model.Store, args []string) string {
 	if len(args) < 2 {
 		return "ERROR: SET command requires a key and a value"
@@ -19,6 +21,8 @@ func Set(store *model.Store, args []string) string {
 }
 
 // Get retrieves the value associated with the specified key from the store.
+// args[0]: key
+// Returns the value as a string, or an error message if arguments are invalid.
 func Get(store *model.Store, args []string) string {
 	if len(args) < 1 {
 		return "ERROR: GET command requires a key"
@@ -28,6 +32,8 @@ func Get(store *model.Store, args []string) string {
 }
 
 // Del removes the specified key and its value from the store.
+// args[0]: key
+// Does nothing if arguments are invalid.
 func Del(store *model.Store, args []string) {
 	if len(args) < 1 {
 		return
@@ -36,8 +42,9 @@ func Del(store *model.Store, args []string) {
 	delete(store.Data, key)
 }
 
-// incr increments the integer value stored at the specified key by 1.
-// Returns the new value as a string, or an error message if the value is not an integer.
+// Incr increments the integer value stored at the specified key by 1.
+// args[0]: key
+// Returns the new value as a string, or an error message if the value is not an integer or key does not exist.
 func Incr(store *model.Store, args []string) string {
 	if len(args) < 1 {
 		return "ERROR: INCR command requires a key"
@@ -56,8 +63,9 @@ func Incr(store *model.Store, args []string) string {
 	return fmt.Sprintf("%v", newValue)
 }
 
-// decr decrements the integer value stored at the specified key by 1.
-// Returns the new value as a string, or an error message if the value is not an integer.
+// Decr decrements the integer value stored at the specified key by 1.
+// args[0]: key
+// Returns the new value as a string, or an error message if the value is not an integer or key does not exist.
 func Decr(store *model.Store, args []string) string {
 	if len(args) < 1 {
 		return "ERROR: DECR command requires a key"
@@ -76,8 +84,9 @@ func Decr(store *model.Store, args []string) string {
 	return fmt.Sprintf("%v", newValue)
 }
 
-// incrBy increments the integer value stored at the specified key by the given increment.
-// Returns the new value as a string, or an error message if the value is not an integer.
+// IncrBy increments the integer value stored at the specified key by the given increment.
+// args[0]: key, args[1]: increment value
+// Returns the new value as a string, or an error message if the value is not an integer or key does not exist.
 func IncrBy(store *model.Store, args []string) string {
 	if len(args) < 2 {
 		return "ERROR: INCRBY command requires a key and an increment value"
@@ -100,8 +109,9 @@ func IncrBy(store *model.Store, args []string) string {
 	return fmt.Sprintf("%v", newValue)
 }
 
-// decrBy decrements the integer value stored at the specified key by the given decrement.
-// Returns the new value as a string, or an error message if the value is not an integer.
+// DecrBy decrements the integer value stored at the specified key by the given decrement.
+// args[0]: key, args[1]: decrement value
+// Returns the new value as a string, or an error message if the value is not an integer or key does not exist.
 func DecrBy(store *model.Store, args []string) string {
 	if len(args) < 2 {
 		return "ERROR: DECRBY command requires a key and a decrement value"

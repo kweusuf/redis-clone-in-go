@@ -11,6 +11,8 @@ import (
 	"github.com/kweusuf/redis-clone-in-go/pkg/service"
 )
 
+// Init starts the TCP server, initializes the data store and service, and listens for incoming connections.
+// It accepts connections on port 5001 and handles each connection in a separate goroutine.
 func Init() {
 
 	listener, err := net.Listen("tcp", ":5001")
@@ -35,6 +37,12 @@ func Init() {
 	}
 }
 
+// handleConnection processes commands from a single client connection.
+// It reads input from the connection, parses commands and arguments, and writes responses back to the client.
+//
+// Parameters:
+//   - conn: The network connection to the client.
+//   - dbService: The database service used to handle commands.
 func handleConnection(conn net.Conn, dbService service.DBService) {
 	defer conn.Close()
 

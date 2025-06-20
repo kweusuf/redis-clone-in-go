@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/kweusuf/redis-clone-in-go/pkg/model"
+	"github.com/kweusuf/redis-clone-in-go/pkg/util"
 )
 
 // dbService provides methods to interact with the key-value store.
@@ -32,11 +33,11 @@ func MakeDBService(store model.Store) DBService {
 func (d *dbService) HandleCommand(command string, args []string) string {
 	switch command {
 	case "SET":
-		return d.set(args[0], strings.Join(args[1:], " "))
+		return util.Set(&d.Store, args[0], strings.Join(args[1:], " "))
 	case "GET":
-		return d.get(args[0])
+		return util.Get(&d.Store, args[0])
 	case "DEL":
-		d.del(args[0])
+		util.Del(&d.Store, args[0])
 		return "DELETED"
 	case "INCR":
 		return d.incr(args)
@@ -51,32 +52,13 @@ func (d *dbService) HandleCommand(command string, args []string) string {
 	}
 }
 
-// set stores the given value for the specified key in the store.
-// Returns the value that was set.
-func (d *dbService) set(key string, value string) string {
-	d.Store.Data[key] = value
-
-	return value
-}
-
-// get retrieves the value associated with the specified key from the store.
-// Returns the value as a string.
-func (d *dbService) get(key string) string {
-	return d.Store.Data[key]
-}
-
-// del removes the specified key and its value from the store.
-func (d *dbService) del(key string) {
-	delete(d.Store.Data, key)
-}
-
 // incr increments the integer value stored at the specified key by 1.
 // Returns the new value as a string, or an error message if the value is not an integer.
 func (d *dbService) incr(args []string) string {
 	if len(args) < 1 {
 		return "ERROR: INCR command requires a key"
 	}
-	if _, err := strconv.Atoi(d.get(args[0])); err != nil {
+	if _, err := strconv.Atoi(util.Get(&d.Store, args[0])); err != nil {
 		return "ERROR: value is not an integer"
 	}
 	return fmt.Sprintf("%v", d.increment(args[0]))
@@ -88,10 +70,26 @@ func (d *dbService) decr(args []string) string {
 	if len(args) < 1 {
 		return "ERROR: DECR command requires a key"
 	}
-	if _, err := strconv.Atoi(d.get(args[0])); err != nil {
+	if _, err := strconv.Atoi(util.Get(&d.Store, args[0])); err != nil {
 		return "ERROR: value is not an integer"
 	}
 	return fmt.Sprintf("%v", d.decrement(args[0]))
+}
+
+// increment increases the integer value at the given key by 1.
+// Returns the new value as an int.
+func (d *dbService) increment(key string) int {
+	value, _ := strconv.Atoi(util.Get(&d.Store, key))
+	util.Set(&d.Store, key, strconv.Itoa(value+1))
+	return value + 1
+}
+
+// decrement decreases the integer value at the given key by 1.
+// Returns the new value as an int.
+func (d *dbService) decrement(key string) int {
+	value, _ := strconv.Atoi(util.Get(&d.Store, key))
+	util.Set(&d.Store, key, strconv.Itoa(value-1))
+	return value - 1
 }
 
 // incrBy increments the integer value stored at the specified key by the given increment.
@@ -111,6 +109,19 @@ func (d *dbService) incrBy(args []string) string {
 	return fmt.Sprintf("%v", *result)
 }
 
+// incrementBy increases the integer value at the given key by the specified increment.
+// Returns the new value as a pointer to int, or an error if the value is not an integer.
+func (d *dbService) incrementBy(key string, increment int) (*int, error) {
+	valStr := util.Get(&d.Store, key)
+	value, err := strconv.Atoi(valStr)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR: value is not an integer")
+	}
+	util.Set(&d.Store, key, strconv.Itoa(value+increment))
+	result := value + increment
+	return &result, nil
+}
+
 // decrBy decrements the integer value stored at the specified key by the given decrement.
 // Returns the new value as a string, or an error message if the value is not an integer.
 func (d *dbService) decrBy(args []string) string {
@@ -128,44 +139,15 @@ func (d *dbService) decrBy(args []string) string {
 	return fmt.Sprintf("%v", *result)
 }
 
-// increment increases the integer value at the given key by 1.
-// Returns the new value as an int.
-func (d *dbService) increment(key string) int {
-	value, _ := strconv.Atoi(d.get(key))
-	d.set(key, strconv.Itoa(value+1))
-	return value + 1
-}
-
-// decrement decreases the integer value at the given key by 1.
-// Returns the new value as an int.
-func (d *dbService) decrement(key string) int {
-	value, _ := strconv.Atoi(d.get(key))
-	d.set(key, strconv.Itoa(value-1))
-	return value - 1
-}
-
-// incrementBy increases the integer value at the given key by the specified increment.
-// Returns the new value as a pointer to int, or an error if the value is not an integer.
-func (d *dbService) incrementBy(key string, increment int) (*int, error) {
-	valStr := d.get(key)
-	value, err := strconv.Atoi(valStr)
-	if err != nil {
-		return nil, fmt.Errorf("ERROR: value is not an integer")
-	}
-	d.set(key, strconv.Itoa(value+increment))
-	result := value + increment
-	return &result, nil
-}
-
 // decrementBy decreases the integer value at the given key by the specified decrement.
 // Returns the new value as a pointer to int, or an error if the value is not an integer.
 func (d *dbService) decrementBy(key string, decrement int) (*int, error) {
-	valStr := d.get(key)
+	valStr := util.Get(&d.Store, key)
 	value, err := strconv.Atoi(valStr)
 	if err != nil {
 		return nil, fmt.Errorf("ERROR: value is not an integer")
 	}
-	d.set(key, strconv.Itoa(value-decrement))
+	util.Set(&d.Store, key, strconv.Itoa(value-decrement))
 	result := value - decrement
 	return &result, nil
 }

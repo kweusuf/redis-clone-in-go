@@ -57,7 +57,11 @@ func (d *dbService) HandleCommand(command string, args []string) string {
 		if err != nil {
 			return "ERROR: increment must be an integer"
 		}
-		return fmt.Sprintf("%v", d.incrBy(args[0], increment))
+		result, err := d.incrBy(args[0], increment)
+		if err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf("%v", *result)
 	case "DECRBY":
 		if len(args) < 2 {
 			return "ERROR: DECRBY command requires a key and a decrement value"
@@ -66,7 +70,11 @@ func (d *dbService) HandleCommand(command string, args []string) string {
 		if err != nil {
 			return "ERROR: decrement must be an integer"
 		}
-		return fmt.Sprintf("%v", d.decrBy(args[0], decrement))
+		result, err := d.decrBy(args[0], decrement)
+		if err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf("%v", *result)
 	default:
 		return "ERROR: Unknown command"
 	}
@@ -98,14 +106,24 @@ func (d *dbService) decr(key string) int {
 	return value - 1
 }
 
-func (d *dbService) incrBy(key string, increment int) int {
-	value, _ := strconv.Atoi(d.get(key))
+func (d *dbService) incrBy(key string, increment int) (*int, error) {
+	valStr := d.get(key)
+	value, err := strconv.Atoi(valStr)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR: value is not an integer")
+	}
 	d.set(key, strconv.Itoa(value+increment))
-	return value + increment
+	result := value + increment
+	return &result, nil
 }
 
-func (d *dbService) decrBy(key string, decrement int) int {
-	value, _ := strconv.Atoi(d.get(key))
+func (d *dbService) decrBy(key string, decrement int) (*int, error) {
+	valStr := d.get(key)
+	value, err := strconv.Atoi(valStr)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR: value is not an integer")
+	}
 	d.set(key, strconv.Itoa(value-decrement))
-	return value - decrement
+	result := value - decrement
+	return &result, nil
 }

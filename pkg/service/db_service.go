@@ -26,7 +26,6 @@ func MakeDBService(store model.Store) DBService {
 func (d *dbService) HandleCommand(command string, args []string) string {
 	switch command {
 	case "SET":
-		// Using Join to save the rest of the received data
 		return d.set(args[0], strings.Join(args[1:], " "))
 	case "GET":
 		return d.get(args[0])
@@ -34,51 +33,19 @@ func (d *dbService) HandleCommand(command string, args []string) string {
 		d.del(args[0])
 		return "DELETED"
 	case "INCR":
-		if len(args) < 1 {
-			return "ERROR: INCR command requires a key"
-		}
-		if _, err := strconv.Atoi(d.get(args[0])); err != nil {
-			return "ERROR: value is not an integer"
-		}
-		return fmt.Sprintf("%v", d.incr(args[0]))
+		return d.incr(args)
 	case "DECR":
-		if len(args) < 1 {
-			return "ERROR: DECR command requires a key"
-		}
-		if _, err := strconv.Atoi(d.get(args[0])); err != nil {
-			return "ERROR: value is not an integer"
-		}
-		return fmt.Sprintf("%v", d.decr(args[0]))
+		return d.decr(args)
 	case "INCRBY":
-		if len(args) < 2 {
-			return "ERROR: INCRBY command requires a key and an increment value"
-		}
-		increment, err := strconv.Atoi(args[1])
-		if err != nil {
-			return "ERROR: increment must be an integer"
-		}
-		result, err := d.incrBy(args[0], increment)
-		if err != nil {
-			return err.Error()
-		}
-		return fmt.Sprintf("%v", *result)
+		return d.incrBy(args)
 	case "DECRBY":
-		if len(args) < 2 {
-			return "ERROR: DECRBY command requires a key and a decrement value"
-		}
-		decrement, err := strconv.Atoi(args[1])
-		if err != nil {
-			return "ERROR: decrement must be an integer"
-		}
-		result, err := d.decrBy(args[0], decrement)
-		if err != nil {
-			return err.Error()
-		}
-		return fmt.Sprintf("%v", *result)
+		return d.decrBy(args)
 	default:
 		return "ERROR: Unknown command"
 	}
 }
+
+// Core key-value operations
 
 func (d *dbService) set(key string, value string) string {
 	d.Store.Data[key] = value
@@ -94,19 +61,73 @@ func (d *dbService) del(key string) {
 	delete(d.Store.Data, key)
 }
 
-func (d *dbService) incr(key string) int {
+// Integer operations (public-facing)
+
+func (d *dbService) incr(args []string) string {
+	if len(args) < 1 {
+		return "ERROR: INCR command requires a key"
+	}
+	if _, err := strconv.Atoi(d.get(args[0])); err != nil {
+		return "ERROR: value is not an integer"
+	}
+	return fmt.Sprintf("%v", d.increment(args[0]))
+}
+
+func (d *dbService) decr(args []string) string {
+	if len(args) < 1 {
+		return "ERROR: DECR command requires a key"
+	}
+	if _, err := strconv.Atoi(d.get(args[0])); err != nil {
+		return "ERROR: value is not an integer"
+	}
+	return fmt.Sprintf("%v", d.decrement(args[0]))
+}
+
+func (d *dbService) incrBy(args []string) string {
+	if len(args) < 2 {
+		return "ERROR: INCRBY command requires a key and an increment value"
+	}
+	increment, err := strconv.Atoi(args[1])
+	if err != nil {
+		return "ERROR: increment must be an integer"
+	}
+	result, err := d.incrementBy(args[0], increment)
+	if err != nil {
+		return err.Error()
+	}
+	return fmt.Sprintf("%v", *result)
+}
+
+func (d *dbService) decrBy(args []string) string {
+	if len(args) < 2 {
+		return "ERROR: DECRBY command requires a key and a decrement value"
+	}
+	decrement, err := strconv.Atoi(args[1])
+	if err != nil {
+		return "ERROR: decrement must be an integer"
+	}
+	result, err := d.decrementBy(args[0], decrement)
+	if err != nil {
+		return err.Error()
+	}
+	return fmt.Sprintf("%v", *result)
+}
+
+// Integer operations (internal helpers)
+
+func (d *dbService) increment(key string) int {
 	value, _ := strconv.Atoi(d.get(key))
 	d.set(key, strconv.Itoa(value+1))
 	return value + 1
 }
 
-func (d *dbService) decr(key string) int {
+func (d *dbService) decrement(key string) int {
 	value, _ := strconv.Atoi(d.get(key))
 	d.set(key, strconv.Itoa(value-1))
 	return value - 1
 }
 
-func (d *dbService) incrBy(key string, increment int) (*int, error) {
+func (d *dbService) incrementBy(key string, increment int) (*int, error) {
 	valStr := d.get(key)
 	value, err := strconv.Atoi(valStr)
 	if err != nil {
@@ -117,7 +138,7 @@ func (d *dbService) incrBy(key string, increment int) (*int, error) {
 	return &result, nil
 }
 
-func (d *dbService) decrBy(key string, decrement int) (*int, error) {
+func (d *dbService) decrementBy(key string, decrement int) (*int, error) {
 	valStr := d.get(key)
 	value, err := strconv.Atoi(valStr)
 	if err != nil {

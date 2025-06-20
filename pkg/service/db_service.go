@@ -58,10 +58,17 @@ func (d *dbService) incr(args []string) string {
 	if len(args) < 1 {
 		return "ERROR: INCR command requires a key"
 	}
-	if _, err := strconv.Atoi(util.Get(&d.Store, args[0])); err != nil {
+	valStr := util.Get(&d.Store, args[0])
+	if valStr == "" {
+		return "ERROR: key does not exist"
+	}
+	value, err := strconv.Atoi(valStr)
+	if err != nil {
 		return "ERROR: value is not an integer"
 	}
-	return fmt.Sprintf("%v", d.increment(args[0]))
+	newValue := value + 1
+	util.Set(&d.Store, args[0], strconv.Itoa(newValue))
+	return fmt.Sprintf("%v", newValue)
 }
 
 // decr decrements the integer value stored at the specified key by 1.
@@ -70,26 +77,17 @@ func (d *dbService) decr(args []string) string {
 	if len(args) < 1 {
 		return "ERROR: DECR command requires a key"
 	}
-	if _, err := strconv.Atoi(util.Get(&d.Store, args[0])); err != nil {
+	valStr := util.Get(&d.Store, args[0])
+	if valStr == "" {
+		return "ERROR: key does not exist"
+	}
+	value, err := strconv.Atoi(valStr)
+	if err != nil {
 		return "ERROR: value is not an integer"
 	}
-	return fmt.Sprintf("%v", d.decrement(args[0]))
-}
-
-// increment increases the integer value at the given key by 1.
-// Returns the new value as an int.
-func (d *dbService) increment(key string) int {
-	value, _ := strconv.Atoi(util.Get(&d.Store, key))
-	util.Set(&d.Store, key, strconv.Itoa(value+1))
-	return value + 1
-}
-
-// decrement decreases the integer value at the given key by 1.
-// Returns the new value as an int.
-func (d *dbService) decrement(key string) int {
-	value, _ := strconv.Atoi(util.Get(&d.Store, key))
-	util.Set(&d.Store, key, strconv.Itoa(value-1))
-	return value - 1
+	newValue := value - 1
+	util.Set(&d.Store, args[0], strconv.Itoa(newValue))
+	return fmt.Sprintf("%v", newValue)
 }
 
 // incrBy increments the integer value stored at the specified key by the given increment.
@@ -102,24 +100,17 @@ func (d *dbService) incrBy(args []string) string {
 	if err != nil {
 		return "ERROR: increment must be an integer"
 	}
-	result, err := d.incrementBy(args[0], increment)
-	if err != nil {
-		return err.Error()
+	valStr := util.Get(&d.Store, args[0])
+	if valStr == "" {
+		return "ERROR: key does not exist"
 	}
-	return fmt.Sprintf("%v", *result)
-}
-
-// incrementBy increases the integer value at the given key by the specified increment.
-// Returns the new value as a pointer to int, or an error if the value is not an integer.
-func (d *dbService) incrementBy(key string, increment int) (*int, error) {
-	valStr := util.Get(&d.Store, key)
 	value, err := strconv.Atoi(valStr)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR: value is not an integer")
+		return "ERROR: value is not an integer"
 	}
-	util.Set(&d.Store, key, strconv.Itoa(value+increment))
-	result := value + increment
-	return &result, nil
+	newValue := value + increment
+	util.Set(&d.Store, args[0], strconv.Itoa(newValue))
+	return fmt.Sprintf("%v", newValue)
 }
 
 // decrBy decrements the integer value stored at the specified key by the given decrement.
@@ -132,22 +123,15 @@ func (d *dbService) decrBy(args []string) string {
 	if err != nil {
 		return "ERROR: decrement must be an integer"
 	}
-	result, err := d.decrementBy(args[0], decrement)
-	if err != nil {
-		return err.Error()
+	valStr := util.Get(&d.Store, args[0])
+	if valStr == "" {
+		return "ERROR: key does not exist"
 	}
-	return fmt.Sprintf("%v", *result)
-}
-
-// decrementBy decreases the integer value at the given key by the specified decrement.
-// Returns the new value as a pointer to int, or an error if the value is not an integer.
-func (d *dbService) decrementBy(key string, decrement int) (*int, error) {
-	valStr := util.Get(&d.Store, key)
 	value, err := strconv.Atoi(valStr)
 	if err != nil {
-		return nil, fmt.Errorf("ERROR: value is not an integer")
+		return "ERROR: value is not an integer"
 	}
-	util.Set(&d.Store, key, strconv.Itoa(value-decrement))
-	result := value - decrement
-	return &result, nil
+	newValue := value - decrement
+	util.Set(&d.Store, args[0], strconv.Itoa(newValue))
+	return fmt.Sprintf("%v", newValue)
 }

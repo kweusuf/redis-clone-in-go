@@ -133,3 +133,118 @@ func DecrBy(store *model.Store, args []string) string {
 	Set(store, newArgs)
 	return fmt.Sprintf("%v", newValue)
 }
+
+// LPush prepends one or multiple values to a list stored at the specified key.
+// args[0]: key, args[1:]: values to prepend
+// Returns the length of the list after the operation, or an error message if arguments are invalid.
+func LPush(store *model.Store, args []string) string {
+	if len(args) < 2 {
+		return "ERROR: LPUSH command requires a key and at least one value"
+	}
+	key := args[0]
+	values := args[1:]
+
+	if store.List[key] == nil {
+		store.List[key] = make([]string, 0)
+	}
+
+	// Prepend values in reverse order to maintain left-push order
+	for i := len(values) - 1; i >= 0; i-- {
+		store.List[key] = append([]string{values[i]}, store.List[key]...)
+	}
+
+	return fmt.Sprintf("%d", len(store.List[key]))
+}
+
+// RPush appends one or multiple values to a list stored at the specified key.
+// args[0]: key, args[1:]: values to append
+// Returns the length of the list after the operation, or an error message if arguments are invalid.
+func RPush(store *model.Store, args []string) string {
+	if len(args) < 2 {
+		return "ERROR: RPUSH command requires a key and at least one value"
+	}
+	key := args[0]
+	values := args[1:]
+
+	if store.List[key] == nil {
+		store.List[key] = make([]string, 0)
+	}
+
+	store.List[key] = append(store.List[key], values...)
+
+	return fmt.Sprintf("%d", len(store.List[key]))
+}
+
+// LPop removes and returns the first element of the list stored at the specified key.
+// args[0]: key
+// Returns the value of the first element, or an error message if the list is empty or does not exist.
+func LPop(store *model.Store, args []string) string {
+	if len(args) < 1 {
+		return "ERROR: LPOP command requires a key"
+	}
+	key := args[0]
+
+	if len(store.List[key]) == 0 {
+		return "ERROR: list is empty or does not exist"
+	}
+
+	value := store.List[key][0]
+	store.List[key] = store.List[key][1:]
+
+	return value
+}
+
+// RPop removes and returns the last element of the list stored at the specified key.
+// args[0]: key
+// Returns the value of the last element, or an error message if the list is empty or does not exist.
+func RPop(store *model.Store, args []string) string {
+	if len(args) < 1 {
+		return "ERROR: RPOP command requires a key"
+	}
+	key := args[0]
+
+	if len(store.List[key]) == 0 {
+		return "ERROR: list is empty or does not exist"
+	}
+
+	value := store.List[key][len(store.List[key])-1]
+	store.List[key] = store.List[key][:len(store.List[key])-1]
+
+	return value
+}
+
+// LLen returns the length of the list stored at the specified key.
+// args[0]: key
+// Returns the length as a string, or "0" if the list does not exist.
+func LLen(store *model.Store, args []string) string {
+	if len(args) < 1 {
+		return "ERROR: LLEN command requires a key"
+	}
+	key := args[0]
+
+	if store.List[key] == nil {
+		return "0"
+	}
+
+	return fmt.Sprintf("%d", len(store.List[key]))
+}
+
+// LIndex returns the element at the specified index in the list stored at the given key.
+// args[0]: key, args[1]: index
+// Returns the value at the index, or an error message if the index is out of range or arguments are invalid.
+func LIndex(store *model.Store, args []string) string {
+	if len(args) < 2 {
+		return "ERROR: LINDEX command requires a key and an index"
+	}
+	key := args[0]
+	index, err := strconv.Atoi(args[1])
+	if err != nil {
+		return "ERROR: index must be an integer"
+	}
+
+	if store.List[key] == nil || index < 0 || index >= len(store.List[key]) {
+		return "ERROR: index out of range"
+	}
+
+	return store.List[key][index]
+}

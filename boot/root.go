@@ -23,7 +23,8 @@ func Init() {
 	defer listener.Close()
 
 	// Initialize the data store
-	s := model.Store{Data: make(map[string]string)}
+	s := model.Store{Data: make(map[string]string),
+		List: make(map[string][]string)}
 
 	// Initialize the service
 	dbService := service.MakeDBService(s)
